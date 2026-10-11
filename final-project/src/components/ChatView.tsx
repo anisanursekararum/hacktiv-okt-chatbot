@@ -19,6 +19,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { SKILL_LIST } from '@/lib/skills/constants';
+import { CheatSheetModal } from './CheatSheetModal';
 
 interface ChatMessage {
   id: string;
@@ -34,6 +35,8 @@ export function ChatView() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
   const [mediaAttachment, setMediaAttachment] = useState<{
     mimeType: string;
     dataBase64: string;
@@ -51,19 +54,22 @@ export function ChatView() {
 
   // Fetch initial chat history
   useEffect(() => {
-    fetch('/api/chat')
+    const email = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('my_pa_logged_in_user') || '{}')?.email : '';
+    if (email) setUserEmail(email);
+    fetch(`/api/chat${email ? `?email=${encodeURIComponent(email)}` : ''}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.messages && data.messages.length > 0) {
           setMessages(data.messages);
         } else {
           // Welcome greeting
+          const userName = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('my_pa_logged_in_user') || '{}')?.name || 'there' : 'there';
           setMessages([
             {
               id: 'welcome_msg',
               role: 'assistant',
               content:
-                "Hello Anisa! I'm My PA (Personal Assistant).\n\nType anything that comes to your mind—todos, groceries, expenses, notes, or plans—and I'll automatically organize them. You can press Enter to create a new line, and click Send when ready. Type `/` to access built-in skills like `/today` or `/email-reminder`.",
+                `Hello ${userName}! I'm My PA (Personal Assistant).\n\nType anything that comes to your mind—todos, groceries, expenses, notes, or plans—and I'll automatically organize them. You can press Enter to create a new line, and click Send when ready. Type \`/\` to access built-in skills like \`/today\` or \`/email-reminder\`.`,
               created_at: new Date().toISOString(),
             },
           ]);
@@ -150,11 +156,13 @@ export function ChatView() {
     setLoading(true);
 
     try {
+      const email = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('my_pa_logged_in_user') || '{}')?.email : '';
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: userText,
+          userEmail: email,
           mediaAttachment: currentAttachment
             ? {
                 mimeType: currentAttachment.mimeType,
@@ -248,13 +256,12 @@ export function ChatView() {
             /daily-briefing
           </button>
           <button
-            onClick={() => {
-              setInput('/info');
-              setTimeout(() => handleSendMessage(), 50);
-            }}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-500 text-slate-600 dark:text-slate-300 transition border border-slate-200/60 dark:border-slate-700/60"
+            onClick={() => setIsCheatSheetOpen(true)}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition shadow-xs"
+            title="Open Skill Cheat Sheet (/info)"
           >
-            /info
+            <Command className="w-3.5 h-3.5" />
+            <span>Cheat Sheet (/info)</span>
           </button>
         </div>
       </div>
@@ -512,6 +519,17 @@ export function ChatView() {
           </button>
         </form>
       </div>
+
+      {/* Cheat Sheet Modal */}
+      <CheatSheetModal
+        isOpen={isCheatSheetOpen}
+        onClose={() => setIsCheatSheetOpen(false)}
+        onSelectCommand={(cmd) => {
+          setInput(cmd);
+          setIsCheatSheetOpen(false);
+        }}
+        userEmail={userEmail}
+      />
     </div>
   );
 }
