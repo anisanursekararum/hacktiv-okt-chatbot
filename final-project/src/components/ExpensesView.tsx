@@ -81,7 +81,7 @@ export function ExpensesView() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `omnia_expenses_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `my_pa_expenses_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
   };
 

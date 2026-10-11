@@ -19,7 +19,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('omnia_theme') as Theme | null;
+    const saved = (localStorage.getItem('my_pa_theme') || localStorage.getItem('omnia_theme')) as Theme | null;
     const initial = saved || 'dark';
     setTheme(initial);
     if (initial === 'dark') {
@@ -33,7 +33,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
-    localStorage.setItem('omnia_theme', next);
+    localStorage.setItem('my_pa_theme', next);
     if (next === 'dark') {
       document.documentElement.classList.add('dark');
     } else {

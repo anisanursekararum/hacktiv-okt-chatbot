@@ -4,7 +4,7 @@ const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
 const SMTP_USER = process.env.SMTP_USER || 'anisa.arum.work@gmail.com';
 const SMTP_PASS = process.env.SMTP_PASS || '';
-const SMTP_FROM = process.env.SMTP_FROM || `"Omnia AI Assistant" <${SMTP_USER}>`;
+const SMTP_FROM = process.env.SMTP_FROM || `"My PA Assistant" <${SMTP_USER}>`;
 
 export interface SendEmailOptions {
   to: string;

@@ -127,7 +127,7 @@ export interface UserSettings {
   updated_at: string;
 }
 
-export interface OmniaStoreData {
+export interface MyPaStoreData {
   users: User[];
   chat_messages: ChatMessage[];
   tasks: Task[];
@@ -140,9 +140,12 @@ export interface OmniaStoreData {
   user_settings: UserSettings[];
 }
 
+export type OmniaStoreData = MyPaStoreData;
+
 const DEFAULT_USER_ID = 'usr_anisa_01';
 const DEFAULT_USER_EMAIL = process.env.USER_EMAIL || 'anisa.arum.work@gmail.com';
-const DATA_FILE = path.join(process.cwd(), 'data', 'omnia_storage.json');
+const DATA_FILE = path.join(process.cwd(), 'data', 'my_pa_storage.json');
+const LEGACY_DATA_FILE = path.join(process.cwd(), 'data', 'omnia_storage.json');
 
 // Helper: Cosine similarity for Vector RAG search
 function cosineSimilarity(vecA: number[], vecB: number[]): number {
@@ -159,8 +162,8 @@ function cosineSimilarity(vecA: number[], vecB: number[]): number {
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-class OmniaStorage {
-  private data: OmniaStoreData;
+class MyPaStorage {
+  private data: MyPaStoreData;
   private initialized = false;
 
   constructor() {
@@ -168,7 +171,7 @@ class OmniaStorage {
     this.init();
   }
 
-  private getDefaultData(): OmniaStoreData {
+  private getDefaultData(): MyPaStoreData {
     const now = new Date().toISOString();
     return {
       users: [
@@ -213,6 +216,11 @@ class OmniaStorage {
       const dir = path.dirname(DATA_FILE);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
+      }
+      if (!fs.existsSync(DATA_FILE) && fs.existsSync(LEGACY_DATA_FILE)) {
+        try {
+          fs.copyFileSync(LEGACY_DATA_FILE, DATA_FILE);
+        } catch {}
       }
       if (fs.existsSync(DATA_FILE)) {
         const raw = fs.readFileSync(DATA_FILE, 'utf-8');
@@ -625,11 +633,11 @@ class OmniaStorage {
   }
 
   // --- Backup & Export ---
-  public exportFullBackup(userId?: string): OmniaStoreData {
+  public exportFullBackup(userId?: string): MyPaStoreData {
     if (!userId) {
       return JSON.parse(JSON.stringify(this.data));
     }
-    const cloned: OmniaStoreData = JSON.parse(JSON.stringify(this.data));
+    const cloned: MyPaStoreData = JSON.parse(JSON.stringify(this.data));
     cloned.users = cloned.users.filter((u) => u.id === userId);
     cloned.tasks = cloned.tasks.filter((t) => t.user_id === userId);
     cloned.expenses = cloned.expenses.filter((e) => e.user_id === userId);
@@ -643,9 +651,9 @@ class OmniaStorage {
     return cloned;
   }
 
-  public importBackup(backup: Partial<OmniaStoreData>): { imported: Record<string, number> } {
+  public importBackup(backup: Partial<MyPaStoreData>): { imported: Record<string, number> } {
     const stats: Record<string, number> = {};
-    const tables: (keyof OmniaStoreData)[] = [
+    const tables: (keyof MyPaStoreData)[] = [
       'users',
       'chat_messages',
       'tasks',
@@ -677,4 +685,5 @@ class OmniaStorage {
 }
 
 // Singleton storage instance
-export const storage = new OmniaStorage();
+export const storage = new MyPaStorage();
+export { MyPaStorage as OmniaStorage };

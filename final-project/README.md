@@ -1,6 +1,6 @@
-# Omnia AI – Personal Assistant Chatbot
+# My PA – Personal Assistant Chatbot
 
-> A stream-of-consciousness personal assistant web application and PWA engineered according to [PRD-EN.md](../final-project/PRD-EN.md).
+> A stream-of-consciousness personal assistant web application and PWA engineered according to [PRD-EN.md](docs/PRD-EN.md).
 
 ---
 
@@ -8,7 +8,7 @@
 
 1. **Stream-of-Consciousness Auto-Classification**:
    - Write or speak your thoughts naturally without choosing categories manually.
-   - Omnia leverages **Google Gemini** with structured output schemas to automatically extract and create items across:
+   - My PA leverages **Google Gemini** with structured output schemas to automatically extract and create items across:
      - **Tasks / To-Dos** (`PENDING`, `COMPLETED`, fuzzy-match status updates)
      - **Financial Expenses** (`DRAFT` status awaiting confirmation, categories, amounts, receipts)
      - **Groceries** (interactive shopping checklist)
@@ -61,7 +61,7 @@
 ## 🚀 Getting Started
 
 ### 1. Environment Configuration (`.env.local`)
-Create `.env.local` inside `omnia-app`:
+Create `.env.local` inside project directory:
 ```env
 # Google Gemini API
 GEMINI_API_KEY=your_gemini_api_key
@@ -84,7 +84,6 @@ SMTP_PASS=
 
 ### 2. Development Mode
 ```bash
-cd omnia-app
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser.

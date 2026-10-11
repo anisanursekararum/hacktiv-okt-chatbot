@@ -43,7 +43,7 @@ async function runTests() {
   console.log('Expenses in store:', backup.expenses.length);
   console.log('Groceries in store:', backup.groceries.length);
 
-  console.log('-> [PASS] Omnia Storage & Backup verified!');
+  console.log('-> [PASS] My PA Storage & Backup verified!');
   console.log('\nALL TESTS PASSED SUCCESSFULLY! 🚀');
 }
 

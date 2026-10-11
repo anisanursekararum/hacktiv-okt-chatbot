@@ -1,12 +1,12 @@
-# PRD – Omnia AI: Personal Assistant Chatbot
+# PRD – My PA: Personal Assistant Chatbot
 
-**Version:** 1.0 (Final) · **Date:** 11 October 2026 · **Language:** English (Indonesian version: `PRD-Omnia-AI-ID.md`)
+**Version:** 1.0 (Final) · **Date:** 11 October 2026 · **Language:** English (Indonesian version: `PRD-ID.md`)
 
 ---
 
 ## 1. Summary & Final Decisions
 
-Omnia AI is a chat-based personal assistant for a single user. You write anything (todos, groceries, expenses, notes, links, plans), the AI recognizes and sorts it, sends reminders by email, and answers questions about your history. It runs as a responsive web app and can be added to the iPhone home screen.
+My PA is a chat-based personal assistant for a single user. You write anything (todos, groceries, expenses, notes, links, plans), the AI recognizes and sorts it, sends reminders by email, and answers questions about your history. It runs as a responsive web app and can be added to the iPhone home screen.
 
 | Decision | Final choice |
 | --- | --- |
