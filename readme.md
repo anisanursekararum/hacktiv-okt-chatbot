@@ -1,74 +1,74 @@
 # Hacktiv8 AI Bootcamp – Repository Overview
 
-> Repositori ini berisi kumpulan modul pembelajaran, eksperimen hands-on, dan **Final Project** personal assistant chatbot berbasis Google Gemini AI.
+> This repository contains hands-on learning modules, experiments, and the **Final Project** personal assistant chatbot powered by Google Gemini AI.
 
 🌐 **Production Demo (Final Project):** [https://hacktiv-okt-chatbot.vercel.app/](https://hacktiv-okt-chatbot.vercel.app/)
 
 ---
 
-## 📂 Struktur Repositori
+## 📂 Repository Structure
 
 ```text
 hacktiv-10-okt/
 ├── 📁 final-project/          # [MAIN] My PA – Full-Stack Personal Assistant Web App & PWA
-├── 📁 chatbot/                # [Modul 1] Eksperimen dasar CLI / Interactive Terminal Chatbot
-├── 📁 gemini-chatbot-api/     # [Modul 2] Implementasi Backend API RESTful Chatbot Gemini
-├── 📄 readme.md               # Dokumentasi ikhtisar root repositori
+├── 📁 chatbot/                # [Module 1] Baseline CLI / Interactive Terminal Chatbot
+├── 📁 gemini-chatbot-api/     # [Module 2] RESTful Chatbot API Service using Express & Gemini
+├── 📄 readme.md               # Root repository documentation overview
 └── 📄 .gitignore              # Global git ignore configuration
 ```
 
 ---
 
-## 🚀 Rincian Folder & Modul
+## 🚀 Directory & Module Details
 
 ### 1. `final-project/` — **My PA (Personal Assistant Chatbot)** ⭐
-Aplikasi web full-stack modern dan *Progressive Web App (PWA)* yang berfungsi sebagai asisten pribadi berbasis chat *stream-of-consciousness*.
+A modern full-stack web application and *Progressive Web App (PWA)* designed as a stream-of-consciousness personal assistant.
 - **Tech Stack:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Google Gemini 2.5 Flash, Neon PostgreSQL 16 + `pgvector`, Drizzle ORM, Nodemailer (Gmail SMTP).
-- **Fitur Unggulan:**
-  - Auto-Classification otomatis untuk Todo, Pengeluaran, Groceries, Catatan, dan Reminder.
-  - 19 Built-in Skills Engine (Slash commands seperti `/info`, `/today`, `/expense`, `/backup`, `/send-email`, dll).
-  - Multi-user authentication & scoping (Google OAuth 2.0).
-  - 3-Tier Memory & Hybrid Vector Semantic Search.
-  - One-click JSON backup/restore & background SMTP reminder scheduler.
-- **Dokumentasi Lengkap:** Silakan buka [final-project/README.md](final-project/README.md) untuk panduan konfigurasi, schema database, dan instalasi detail.
+- **Core Features:**
+  - Stream-of-consciousness auto-classification for To-Dos, Expenses, Groceries, Notes, and Reminders.
+  - Built-in 19 Skills Engine (Slash commands like `/info`, `/today`, `/expense`, `/backup`, `/send-email`, etc.).
+  - Multi-user authentication & data isolation (Google OAuth 2.0).
+  - 3-Tier Memory Architecture with Hybrid Vector Semantic Search.
+  - One-click JSON backup & restore, along with background SMTP email reminder dispatching.
+- **Detailed Documentation:** Refer to [final-project/README.md](final-project/README.md) for full configuration, database schemas, and setup instructions.
 
 ---
 
-### 2. `chatbot/` — **Terminal / CLI Chatbot**
-Modul eksperimen awal pembuatan chatbot interaktif melalui antarmuka konsol / terminal menggunakan Google Gemini SDK.
-- Berinteraksi langsung dengan model AI via command prompt / PowerShell.
-- Mempelajari inisialisasi API key, session chat interaktif, dan prompt engineering dasar.
+### 2. `chatbot/` — **Interactive Terminal / CLI Chatbot**
+Foundational module demonstrating an interactive console chat application using the Google Gemini SDK.
+- Direct terminal interactions with the Gemini AI model via command prompt / PowerShell.
+- Covers API key initialization, chat session persistence, and basic prompt engineering.
 
 ---
 
 ### 3. `gemini-chatbot-api/` — **Gemini REST API Service**
-Modul pembuatan layanan web server backend berbasis Express.js / Node.js untuk mengekspos endpoint API chatbot.
-- Menyediakan route HTTP POST untuk menerima prompt chat dan mengembalikan respons teks dari Gemini AI.
-- Berfungsi sebagai jembatan dasar antara client web dengan API Google Gemini.
+Backend web server service built with Express.js / Node.js exposing API endpoints for chatbot integration.
+- Provides HTTP POST endpoints to receive prompt payloads and return AI-generated responses.
+- Serves as a foundational bridge between frontend client applications and the Google Gemini API.
 
 ---
 
-## 🛠️ Cara Menjalankan Project
+## 🛠️ Getting Started
 
-Jika kamu ingin menjalankan **Final Project (My PA)**:
+To run the **Final Project (My PA)** locally:
 
 ```bash
-# 1. Masuk ke direktori final-project
+# 1. Navigate to the final-project directory
 cd final-project
 
-# 2. Install dependensi
+# 2. Install dependencies
 npm install
 
-# 3. Setup file konfigurasi .env (salin dari .env.example)
+# 3. Create your environment configuration file (.env)
 cp .env.example .env
 
-# 4. Jalankan server pengembangan lokal
+# 4. Start the local development server
 npm run dev
 ```
 
-Akses aplikasi di browser pada [http://localhost:3000](http://localhost:3000).
+Open your browser and navigate to [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## 👨‍💻 Penulis / Mahasiswa
-Dibuat sebagai bagian dari rangkaian tugas dan Final Project **Hacktiv8 AI Bootcamp** (Oktober 2026).
+## 👨‍💻 Author & Attribution
+Developed as part of the assignments and Final Project curriculum for **Hacktiv8 AI Bootcamp** (October 2026).
