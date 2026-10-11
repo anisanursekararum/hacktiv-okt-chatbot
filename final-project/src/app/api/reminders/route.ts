@@ -2,26 +2,36 @@ import { NextRequest, NextResponse } from 'next/server';
 import { storage } from '@/lib/db/storage';
 import { sendEmail } from '@/lib/email/smtp';
 
-export async function GET() {
-  const reminders = storage.getReminders();
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const email = searchParams.get('email');
+  const userId = email ? storage.getUser(email).id : undefined;
+  const reminders = storage.getReminders(userId);
   return NextResponse.json({ reminders });
 }
 
 // POST: Trigger check and dispatch of due reminders (called manually or by external cron)
 export async function POST(req: NextRequest) {
   try {
-    const user = storage.getUser();
+    let email = null;
+    try {
+      const body = await req.json();
+      email = body.email;
+    } catch (e) {}
+
     const reminders = storage.getReminders();
     const now = new Date();
     const results: any[] = [];
 
     for (const rem of reminders) {
       if (rem.status === 'SCHEDULED' && new Date(rem.trigger_time) <= now) {
+        // Find owner of reminder
+        const owner = storage.getUserById(rem.user_id) || (email ? storage.getUser(email) : storage.getUser());
         if (rem.channel === 'email') {
           const res = await sendEmail({
-            to: user.email,
-            subject: `Omnia Reminder: ${rem.payload}`,
-            text: `Hi ${user.full_name},\n\nThis is your scheduled Omnia reminder:\n\n"${rem.payload}"\n\nScheduled for: ${rem.trigger_time}`,
+            to: owner.email,
+            subject: `My PA Reminder: ${rem.payload}`,
+            text: `Hi ${owner.full_name || 'there'},\n\nThis is your scheduled reminder from My PA:\n\n"${rem.payload}"\n\nScheduled for: ${new Date(rem.trigger_time).toLocaleString()}\nSent to: ${owner.email}\n\nMy PA Personal Assistant`,
           });
 
           if (res.success) {

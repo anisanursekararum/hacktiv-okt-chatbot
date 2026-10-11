@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { UserSettings } from '@/lib/db/storage';
 
-export function SettingsView() {
+export function SettingsView({ onLogout }: { onLogout?: () => void }) {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -25,10 +25,11 @@ export function SettingsView() {
 
   const fetchSettings = async () => {
     try {
-      const res = await fetch('/api/settings');
+      const savedUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('my_pa_logged_in_user') || '{}') : null;
+      const res = await fetch(`/api/settings${savedUser?.email ? `?email=${encodeURIComponent(savedUser.email)}` : ''}`);
       const data = await res.json();
       setSettings(data.settings);
-      setUser(data.user);
+      setUser(savedUser?.email ? { ...data.user, ...savedUser } : data.user);
     } catch (err) {
       console.error(err);
     }
@@ -73,17 +74,19 @@ export function SettingsView() {
   };
 
   const handleDownloadBackup = () => {
-    window.location.href = '/api/backup';
+    const loggedInEmail = user?.email || (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('my_pa_logged_in_user') || '{}')?.email);
+    window.location.href = `/api/backup?email=${encodeURIComponent(loggedInEmail || '')}`;
   };
 
   const handleEmailBackup = async () => {
     setLoading(true);
     setStatusMsg(null);
     try {
+      const loggedInEmail = user?.email || (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('my_pa_logged_in_user') || '{}')?.email);
       const res = await fetch('/api/backup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'email' }),
+        body: JSON.stringify({ action: 'email', recipientEmail: loggedInEmail }),
       });
       const data = await res.json();
       if (data.success) {
@@ -316,8 +319,12 @@ export function SettingsView() {
           </h3>
           <button
             onClick={() => {
-              localStorage.removeItem('my_pa_logged_in_user');
-              window.location.reload();
+              if (onLogout) {
+                onLogout();
+              } else {
+                localStorage.removeItem('my_pa_logged_in_user');
+                window.location.reload();
+              }
             }}
             className="px-3 py-1 rounded-xl text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition"
           >

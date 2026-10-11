@@ -6,7 +6,10 @@ import { parseStreamOfConsciousness, generateEmbedding } from '@/lib/ai/gemini';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { content, mediaAttachment } = body;
+    const { content, mediaAttachment, userEmail } = body;
+
+    const currentUser = userEmail ? storage.getUser(userEmail) : storage.getUser();
+    const userId = currentUser.id;
 
     if (!content && !mediaAttachment) {
       return NextResponse.json({ error: 'Message content or media attachment is required' }, { status: 400 });
@@ -16,18 +19,18 @@ export async function POST(req: NextRequest) {
 
     // 1. Check if user issued a slash command skill (e.g. /today, /info, /expense)
     if (trimmed.startsWith('/')) {
-      const skillResult = await executeSkill(trimmed);
+      const skillResult = await executeSkill(trimmed, userId, currentUser.email);
       if (skillResult) {
         // Record user slash command and assistant response in chat messages
         const userMsg = storage.addChatMessage({
-          user_id: storage.getUserId(),
+          user_id: userId,
           role: 'user',
           content: trimmed,
           media_type: 'text',
         });
 
         const assistantMsg = storage.addChatMessage({
-          user_id: storage.getUserId(),
+          user_id: userId,
           role: 'assistant',
           content: skillResult.reply,
           media_type: 'text',
@@ -51,7 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     const userMsg = storage.addChatMessage({
-      user_id: storage.getUserId(),
+      user_id: userId,
       role: 'user',
       content: trimmed,
       media_url: mediaAttachment ? `data:${mediaAttachment.mimeType};base64,...` : null,
@@ -59,7 +62,7 @@ export async function POST(req: NextRequest) {
     });
 
     // 3. Multi-Modal Gemini Classification Engine
-    const classification = await parseStreamOfConsciousness(trimmed, mediaAttachment);
+    const classification = await parseStreamOfConsciousness(trimmed, mediaAttachment, userId);
 
     // 4. Save Extracted Structured Entities into Matching Tables
     const createdItems: {
@@ -81,7 +84,7 @@ export async function POST(req: NextRequest) {
     // A. Tasks
     for (const t of classification.tasks) {
       const task = storage.addTask({
-        user_id: storage.getUserId(),
+        user_id: userId,
         title: t.title,
         category: t.category || 'general',
         status: 'PENDING',
@@ -93,14 +96,14 @@ export async function POST(req: NextRequest) {
 
     // B. Completed Tasks
     for (const title of classification.task_completions) {
-      const doneTask = storage.fuzzyMatchAndCompleteTask(title);
+      const doneTask = storage.fuzzyMatchAndCompleteTask(title, userId);
       if (doneTask) createdItems.completedTasks.push(doneTask);
     }
 
     // C. Expenses (Stored as DRAFT awaiting confirmation)
     for (const exp of classification.expenses) {
       const expense = storage.addExpense({
-        user_id: storage.getUserId(),
+        user_id: userId,
         amount: exp.amount,
         category: exp.category || 'general',
         description: exp.description,
@@ -115,7 +118,7 @@ export async function POST(req: NextRequest) {
     // D. Groceries
     for (const g of classification.groceries) {
       const item = storage.addGrocery({
-        user_id: storage.getUserId(),
+        user_id: userId,
         item: g.item,
         quantity: g.quantity || '1',
         status: 'ACTIVE',
@@ -128,7 +131,7 @@ export async function POST(req: NextRequest) {
     for (const n of classification.notes) {
       const embedding = await generateEmbedding(`${n.title} ${n.content}`);
       const note = storage.addNote({
-        user_id: storage.getUserId(),
+        user_id: userId,
         kind: n.kind || 'note',
         title: n.title,
         content: n.content,
@@ -142,7 +145,7 @@ export async function POST(req: NextRequest) {
     // F. Reminders
     for (const r of classification.reminders) {
       const reminder = storage.addReminder({
-        user_id: storage.getUserId(),
+        user_id: userId,
         payload: r.payload,
         trigger_time: r.trigger_time,
         recurrence: r.recurrence || 'none',
@@ -155,7 +158,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Tier 2 Rolling Summary Update Check (+20 messages threshold)
-    const allMsgs = storage.getAllMessages();
+    const allMsgs = storage.getAllMessages(userId);
     if (allMsgs.length > 0 && allMsgs.length % 20 === 0) {
       const recent = allMsgs.slice(-20).map((m) => `${m.role}: ${m.content}`).join('\n');
       storage.saveSummary('conversation', `rolling_${allMsgs.length}`, `Key points of recent dialog:\n${recent.slice(0, 500)}`);
@@ -163,7 +166,7 @@ export async function POST(req: NextRequest) {
 
     // 6. Save Assistant Response
     const assistantMsg = storage.addChatMessage({
-      user_id: storage.getUserId(),
+      user_id: userId,
       role: 'assistant',
       content: classification.conversational_reply,
       media_type: 'text',
@@ -180,7 +183,10 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
-  const messages = storage.getRecentMessages(50);
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const email = searchParams.get('email');
+  const userId = email ? storage.getUser(email).id : undefined;
+  const messages = storage.getRecentMessages(50, userId);
   return NextResponse.json({ messages });
 }

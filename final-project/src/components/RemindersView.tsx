@@ -4,16 +4,23 @@ import React, { useState, useEffect } from 'react';
 import { Bell, Mail, Clock, Send, Plus, CheckCircle2, AlertTriangle, RefreshCw, Trash2 } from 'lucide-react';
 import { Reminder } from '@/lib/db/storage';
 
+import { ConfirmationModal } from './ConfirmationModal';
+
 export function RemindersView() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [newPayload, setNewPayload] = useState('');
   const [newChannel, setNewChannel] = useState<'email' | 'in_app'>('email');
   const [dispatching, setDispatching] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
+  const [userEmail, setUserEmail] = useState('');
 
   const fetchReminders = async () => {
     try {
-      const res = await fetch('/api/reminders');
+      const email = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('my_pa_logged_in_user') || '{}')?.email : '';
+      setUserEmail(email);
+      const res = await fetch(`/api/reminders${email ? `?email=${encodeURIComponent(email)}` : ''}`);
       const data = await res.json();
       setReminders(data.reminders || []);
     } catch (err) {
@@ -25,14 +32,20 @@ export function RemindersView() {
     fetchReminders();
   }, []);
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const requestDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Remove this reminder?')) return;
+    setDeleteTargetId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
     try {
-      await fetch(`/api/items?type=reminders&id=${id}`, { method: 'DELETE' });
+      await fetch(`/api/items?type=reminders&id=${deleteTargetId}`, { method: 'DELETE' });
       fetchReminders();
     } catch (err) {
       console.error(err);
+    } finally {
+      setDeleteTargetId(null);
     }
   };
 
@@ -46,6 +59,7 @@ export function RemindersView() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: `/email-reminder ${newPayload.trim()}`,
+          userEmail,
         }),
       });
       setNewPayload('');
@@ -60,7 +74,11 @@ export function RemindersView() {
     setDispatching(true);
     setMessage(null);
     try {
-      const res = await fetch('/api/reminders', { method: 'POST' });
+      const res = await fetch('/api/reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail }),
+      });
       const data = await res.json();
       setMessage(`Processed ${data.processed || 0} reminders.`);
       fetchReminders();
@@ -81,7 +99,7 @@ export function RemindersView() {
             <span>Reminders & Alerts</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Automated alerts dispatched via Gmail SMTP (anisa.arum.work@gmail.com) and in-app.
+            Automated alerts dispatched to your logged-in Google email ({userEmail || 'your account'}) via Gmail SMTP.
           </p>
         </div>
 
@@ -156,7 +174,7 @@ export function RemindersView() {
                       <Clock className="w-3 h-3" />
                       <span>{new Date(r.trigger_time).toLocaleString()}</span>
                     </span>
-                    <span className="capitalize text-emerald-600 dark:text-emerald-400 font-medium">Channel: Gmail SMTP</span>
+                    <span className="capitalize text-emerald-600 dark:text-emerald-400 font-medium">Channel: Gmail SMTP (to: {userEmail || 'Your Email'})</span>
                   </div>
                 </div>
               </div>
@@ -175,7 +193,7 @@ export function RemindersView() {
                 </span>
 
                 <button
-                  onClick={(e) => handleDelete(r.id, e)}
+                  onClick={(e) => requestDelete(r.id, e)}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition"
                   title="Remove reminder"
                 >
@@ -192,6 +210,19 @@ export function RemindersView() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={Boolean(deleteTargetId)}
+        title="Delete Reminder"
+        message="Are you sure you want to delete this reminder? You will not receive email notifications for it."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        iconType="trash"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </div>
   );
 }
