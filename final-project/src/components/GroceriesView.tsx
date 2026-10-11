@@ -4,15 +4,19 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingCart, CheckCircle2, Circle, Plus, Trash2 } from 'lucide-react';
 import { Grocery } from '@/lib/db/storage';
 
+import { ConfirmationModal } from './ConfirmationModal';
+
 export function GroceriesView() {
   const [groceries, setGroceries] = useState<Grocery[]>([]);
   const [newItem, setNewItem] = useState('');
   const [newQty, setNewQty] = useState('1');
   const [loading, setLoading] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const fetchGroceries = async () => {
     try {
-      const res = await fetch('/api/items?type=groceries');
+      const email = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('my_pa_logged_in_user') || '{}')?.email : '';
+      const res = await fetch(`/api/items?type=groceries${email ? `&email=${encodeURIComponent(email)}` : ''}`);
       const data = await res.json();
       setGroceries(data.groceries || []);
     } catch (err) {
@@ -38,14 +42,20 @@ export function GroceriesView() {
     fetchGroceries();
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const requestDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Remove this grocery item?')) return;
+    setDeleteTargetId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
     try {
-      await fetch(`/api/items?type=groceries&id=${id}`, { method: 'DELETE' });
+      await fetch(`/api/items?type=groceries&id=${deleteTargetId}`, { method: 'DELETE' });
       fetchGroceries();
     } catch (err) {
       console.error(err);
+    } finally {
+      setDeleteTargetId(null);
     }
   };
 
@@ -135,7 +145,7 @@ export function GroceriesView() {
                   {g.quantity}
                 </span>
                 <button
-                  onClick={(e) => handleDelete(g.id, e)}
+                  onClick={(e) => requestDelete(g.id, e)}
                   className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition"
                   title="Remove grocery item"
                 >
@@ -174,6 +184,19 @@ export function GroceriesView() {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={Boolean(deleteTargetId)}
+        title="Delete Grocery Item"
+        message="Are you sure you want to remove this item from your shopping list?"
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        variant="danger"
+        iconType="trash"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </div>
   );
 }

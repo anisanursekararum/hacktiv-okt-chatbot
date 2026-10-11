@@ -18,7 +18,8 @@ build/
 dist/
 
 # Local database & private user state
-data/omnia_storage.json
+data/*.json
+data/
 
 # Logs & temp files
 *.log

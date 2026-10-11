@@ -4,35 +4,70 @@ import { storage } from '@/lib/db/storage';
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type');
+  const email = searchParams.get('email');
+
+  const currentUser = email ? storage.getUser(email) : storage.getUser();
+  const userId = currentUser.id;
 
   if (type === 'tasks') {
-    return NextResponse.json({ tasks: storage.getTasks() });
+    return NextResponse.json({ tasks: storage.getTasks(true, userId) });
   }
   if (type === 'expenses') {
-    return NextResponse.json({ expenses: storage.getExpenses() });
+    return NextResponse.json({ expenses: storage.getExpenses(userId) });
   }
   if (type === 'groceries') {
-    return NextResponse.json({ groceries: storage.getGroceries() });
+    return NextResponse.json({ groceries: storage.getGroceries(userId) });
   }
   if (type === 'notes') {
-    return NextResponse.json({ notes: storage.getNotes() });
+    return NextResponse.json({ notes: storage.getNotes(undefined, userId) });
   }
   if (type === 'bookmarks') {
-    return NextResponse.json({ bookmarks: storage.getBookmarks() });
+    return NextResponse.json({ bookmarks: storage.getBookmarks(userId) });
   }
   if (type === 'reminders') {
-    return NextResponse.json({ reminders: storage.getReminders() });
+    return NextResponse.json({ reminders: storage.getReminders(userId) });
   }
 
   // Return full dashboard state
   return NextResponse.json({
-    tasks: storage.getTasks(),
-    expenses: storage.getExpenses(),
-    groceries: storage.getGroceries(),
-    notes: storage.getNotes(),
-    reminders: storage.getReminders(),
-    user: storage.getUser(),
+    tasks: storage.getTasks(true, userId),
+    expenses: storage.getExpenses(userId),
+    groceries: storage.getGroceries(userId),
+    notes: storage.getNotes(undefined, userId),
+    reminders: storage.getReminders(userId),
+    user: currentUser,
   });
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { type, item, email } = body;
+
+    if (!type || !item) {
+      return NextResponse.json({ error: 'type and item are required' }, { status: 400 });
+    }
+
+    const currentUser = email ? storage.getUser(email) : storage.getUser();
+    item.user_id = currentUser.id;
+
+    let created = null;
+    if (type === 'tasks') {
+      created = storage.addTask(item);
+    } else if (type === 'expenses') {
+      created = storage.addExpense(item);
+    } else if (type === 'groceries') {
+      created = storage.addGrocery(item);
+    } else if (type === 'notes') {
+      created = storage.addNote(item);
+    } else if (type === 'reminders') {
+      created = storage.addReminder(item);
+    }
+
+    return NextResponse.json({ success: true, item: created });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }
 
 export async function PATCH(req: NextRequest) {
@@ -70,8 +105,16 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const type = searchParams.get('type') as 'tasks' | 'expenses' | 'groceries' | 'notes' | 'reminders';
-    const id = searchParams.get('id');
+    let type = searchParams.get('type') as 'tasks' | 'expenses' | 'groceries' | 'notes' | 'reminders';
+    let id = searchParams.get('id');
+
+    if (!type || !id) {
+      try {
+        const body = await req.json();
+        type = type || body.type;
+        id = id || body.id;
+      } catch (e) {}
+    }
 
     if (!type || !id) {
       return NextResponse.json({ error: 'type and id are required' }, { status: 400 });

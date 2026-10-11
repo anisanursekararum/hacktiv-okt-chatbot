@@ -3,10 +3,14 @@ import { storage } from '@/lib/db/storage';
 import { sendEmail } from '@/lib/email/smtp';
 
 // GET: 1-click download of full JSON backup file
-export async function GET() {
-  const data = storage.exportFullBackup();
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const email = searchParams.get('email');
+  const userId = email ? storage.getUser(email).id : undefined;
+
+  const data = storage.exportFullBackup(userId);
   const dateStr = new Date().toISOString().split('T')[0];
-  const filename = `omnia_backup_${dateStr}.json`;
+  const filename = `my_pa_backup_${dateStr}.json`;
 
   return new NextResponse(JSON.stringify(data, null, 2), {
     status: 200,
@@ -21,20 +25,21 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { action, backupData } = body;
+    const { action, backupData, recipientEmail } = body;
 
     // Action 1: Email backup dispatch
     if (action === 'email') {
-      const user = storage.getUser();
-      const fullBackup = storage.exportFullBackup();
+      const targetEmail = recipientEmail || storage.getUser().email;
+      const user = storage.getUser(targetEmail);
+      const fullBackup = storage.exportFullBackup(user.id);
       const jsonContent = JSON.stringify(fullBackup, null, 2);
       const dateStr = new Date().toISOString().split('T')[0];
-      const filename = `omnia_backup_${dateStr}.json`;
+      const filename = `my_pa_backup_${dateStr}.json`;
 
       const result = await sendEmail({
-        to: user.email,
-        subject: `Omnia AI Backup Export - ${dateStr}`,
-        text: `Hello ${user.full_name},\n\nAttached is your full Omnia AI database backup for ${dateStr}.\nYou can re-import this JSON anytime.\n\nOmnia AI Assistant`,
+        to: targetEmail,
+        subject: `My PA Database Backup - ${dateStr}`,
+        text: `Hello ${user.full_name || 'User'},\n\nAttached is your full My PA database backup for ${dateStr}.\nSent to registered recipient: ${targetEmail}\nYou can re-import this JSON file anytime in your Settings tab.\n\nBest regards,\nMy PA Assistant`,
         attachments: [
           {
             filename,
@@ -46,7 +51,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: result.success,
-        message: result.success ? `Dispatched backup to ${user.email}` : result.error,
+        message: result.success ? `Dispatched backup to ${targetEmail}` : result.error,
       });
     }
 

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { storage } from '@/lib/db/storage';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const email = searchParams.get('email');
   const settings = storage.getSettings();
-  const user = storage.getUser();
+  const user = email ? storage.getUser(email) : storage.getUser();
   return NextResponse.json({ settings, user });
 }
 

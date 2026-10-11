@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { storage } from '@/lib/db/storage';
 
-export async function GET() {
-  const user = storage.getUser();
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const email = searchParams.get('email');
+  const user = email ? storage.getUser(email) : storage.getUser();
   return NextResponse.json({
     authenticated: true,
     user: {
@@ -12,6 +14,7 @@ export async function GET() {
       timezone: user.timezone,
     },
     googleClientIdConfigured: Boolean(process.env.GOOGLE_CLIENT_ID && !process.env.GOOGLE_CLIENT_ID.includes('your-google')),
+    googleClientId: process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
   });
 }
 

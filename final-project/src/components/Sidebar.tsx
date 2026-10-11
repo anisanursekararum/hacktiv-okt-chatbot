@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   MessageSquare,
   Calendar,
@@ -15,8 +15,10 @@ import {
   Bot,
   ShieldCheck,
   LogOut,
+  Command,
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
+import { CheatSheetModal } from './CheatSheetModal';
 
 export type NavTab = 'chat' | 'today' | 'tasks' | 'expenses' | 'groceries' | 'notes' | 'reminders' | 'settings';
 
@@ -30,6 +32,7 @@ interface SidebarProps {
 
 export function Sidebar({ activeTab, setActiveTab, userEmail, userName, onLogout }: SidebarProps) {
   const { theme, toggleTheme } = useTheme();
+  const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
 
   const navItems: { id: NavTab; label: string; icon: React.ReactNode; badge?: string }[] = [
     { id: 'chat', label: 'Chat Assistant', icon: <MessageSquare className="w-5 h-5" /> },
@@ -66,11 +69,10 @@ export function Sidebar({ activeTab, setActiveTab, userEmail, userName, onLogout
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 ${
-                  isActive
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100'
-                }`}
+                className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 ${isActive
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100'
+                  }`}
               >
                 <span className={isActive ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}>
                   {item.icon}
@@ -80,6 +82,7 @@ export function Sidebar({ activeTab, setActiveTab, userEmail, userName, onLogout
             );
           })}
         </nav>
+
       </div>
 
       {/* Footer Controls & User Status */}
@@ -126,6 +129,13 @@ export function Sidebar({ activeTab, setActiveTab, userEmail, userName, onLogout
           )}
         </div>
       </div>
+
+      {/* Cheat Sheet Modal */}
+      <CheatSheetModal
+        isOpen={isCheatSheetOpen}
+        onClose={() => setIsCheatSheetOpen(false)}
+        userEmail={userEmail}
+      />
     </aside>
   );
 }

@@ -4,13 +4,17 @@ import React, { useState, useEffect } from 'react';
 import { Receipt, Check, Download, AlertCircle, Plus, DollarSign, Calendar, Tag, Trash2 } from 'lucide-react';
 import { Expense } from '@/lib/db/storage';
 
+import { ConfirmationModal } from './ConfirmationModal';
+
 export function ExpensesView() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [tab, setTab] = useState<'ALL' | 'DRAFT' | 'CONFIRMED'>('ALL');
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const fetchExpenses = async () => {
     try {
-      const res = await fetch('/api/items?type=expenses');
+      const email = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('my_pa_logged_in_user') || '{}')?.email : '';
+      const res = await fetch(`/api/items?type=expenses${email ? `&email=${encodeURIComponent(email)}` : ''}`);
       const data = await res.json();
       setExpenses(data.expenses || []);
     } catch (err) {
@@ -35,14 +39,20 @@ export function ExpensesView() {
     fetchExpenses();
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const requestDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Remove this expense record?')) return;
+    setDeleteTargetId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
     try {
-      await fetch(`/api/items?type=expenses&id=${id}`, { method: 'DELETE' });
+      await fetch(`/api/items?type=expenses&id=${deleteTargetId}`, { method: 'DELETE' });
       fetchExpenses();
     } catch (err) {
       console.error(err);
+    } finally {
+      setDeleteTargetId(null);
     }
   };
 
@@ -71,7 +81,7 @@ export function ExpensesView() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `omnia_expenses_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `my_pa_expenses_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
   };
 
@@ -205,7 +215,7 @@ export function ExpensesView() {
                 )}
 
                 <button
-                  onClick={(e) => handleDelete(exp.id, e)}
+                  onClick={(e) => requestDelete(exp.id, e)}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition"
                   title="Remove this expense"
                 >
@@ -222,6 +232,19 @@ export function ExpensesView() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={Boolean(deleteTargetId)}
+        title="Delete Expense Record"
+        message="Are you sure you want to delete this expense record? The record will be safely archived."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        iconType="trash"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </div>
   );
 }

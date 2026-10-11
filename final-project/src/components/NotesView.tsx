@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { BookOpen, Sparkles, Plus, Search, Tag, CheckCircle2, Circle, Calendar, Target, Trash2 } from 'lucide-react';
 import { Note } from '@/lib/db/storage';
 
+import { ConfirmationModal } from './ConfirmationModal';
+
 export function NotesView() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [kindFilter, setKindFilter] = useState<'ALL' | 'note' | 'plan' | 'idea'>('ALL');
@@ -12,10 +14,12 @@ export function NotesView() {
   const [newContent, setNewContent] = useState('');
   const [newKind, setNewKind] = useState<'note' | 'plan' | 'idea'>('note');
   const [showAdd, setShowAdd] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const fetchNotes = async () => {
     try {
-      const res = await fetch('/api/items?type=notes');
+      const email = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('my_pa_logged_in_user') || '{}')?.email : '';
+      const res = await fetch(`/api/items?type=notes${email ? `&email=${encodeURIComponent(email)}` : ''}`);
       const data = await res.json();
       setNotes(data.notes || []);
     } catch (err) {
@@ -27,14 +31,20 @@ export function NotesView() {
     fetchNotes();
   }, []);
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const requestDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Remove this note?')) return;
+    setDeleteTargetId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
     try {
-      await fetch(`/api/items?type=notes&id=${id}`, { method: 'DELETE' });
+      await fetch(`/api/items?type=notes&id=${deleteTargetId}`, { method: 'DELETE' });
       fetchNotes();
     } catch (err) {
       console.error(err);
+    } finally {
+      setDeleteTargetId(null);
     }
   };
 
@@ -196,7 +206,7 @@ export function NotesView() {
                       {new Date(note.created_at).toLocaleDateString()}
                     </span>
                     <button
-                      onClick={(e) => handleDelete(note.id, e)}
+                      onClick={(e) => requestDelete(note.id, e)}
                       className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition"
                       title="Remove note"
                     >
@@ -253,6 +263,19 @@ export function NotesView() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={Boolean(deleteTargetId)}
+        title="Delete Note or Plan"
+        message="Are you sure you want to delete this note? It will be archived and removed from search results."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        iconType="trash"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </div>
   );
 }
