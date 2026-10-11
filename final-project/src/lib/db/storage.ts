@@ -601,12 +601,14 @@ class MyPaStorage {
   }
 
   // --- Undo Action ---
-  public undoLastAction(): { type: string; item: any } | null {
+  public undoLastAction(userId?: string): { type: string; item: any } | null {
     // Finds the most recent item added in the last 10 minutes and archives it
     const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
     
     // Check tasks
-    const lastTask = [...this.data.tasks].reverse().find((t) => !t.archived_at && t.created_at >= tenMinAgo);
+    const lastTask = [...this.data.tasks]
+      .reverse()
+      .find((t) => (!userId || t.user_id === userId) && !t.archived_at && t.created_at >= tenMinAgo);
     if (lastTask) {
       lastTask.archived_at = new Date().toISOString();
       this.saveToFile();
@@ -614,7 +616,9 @@ class MyPaStorage {
     }
 
     // Check expenses
-    const lastExp = [...this.data.expenses].reverse().find((e) => !e.archived_at && e.created_at >= tenMinAgo);
+    const lastExp = [...this.data.expenses]
+      .reverse()
+      .find((e) => (!userId || e.user_id === userId) && !e.archived_at && e.created_at >= tenMinAgo);
     if (lastExp) {
       lastExp.archived_at = new Date().toISOString();
       this.saveToFile();
@@ -622,7 +626,9 @@ class MyPaStorage {
     }
 
     // Check groceries
-    const lastGroc = [...this.data.groceries].reverse().find((g) => !g.archived_at && g.created_at >= tenMinAgo);
+    const lastGroc = [...this.data.groceries]
+      .reverse()
+      .find((g) => (!userId || g.user_id === userId) && !g.archived_at && g.created_at >= tenMinAgo);
     if (lastGroc) {
       lastGroc.archived_at = new Date().toISOString();
       this.saveToFile();
