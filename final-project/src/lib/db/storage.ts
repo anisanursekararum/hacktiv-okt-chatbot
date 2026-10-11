@@ -241,26 +241,58 @@ class OmniaStorage {
   }
 
   public getUserId(): string {
-    return DEFAULT_USER_ID;
+    return this.getUser().id;
   }
 
-  public getUser(): User {
-    return this.data.users.find((u) => u.id === DEFAULT_USER_ID) || this.data.users[0];
+  public getUser(email?: string): User {
+    if (email) {
+      let found = this.data.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+      if (found) return found;
+      // Register new user on first login
+      const newUser: User = {
+        id: 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        email: email,
+        full_name: email.split('@')[0],
+        timezone: 'Asia/Jakarta',
+        created_at: new Date().toISOString(),
+        archived_at: null,
+      };
+      this.data.users.push(newUser);
+      this.saveToFile();
+      return newUser;
+    }
+    return this.data.users[0];
+  }
+
+  public getUserById(id: string): User | undefined {
+    return this.data.users.find((u) => u.id === id);
   }
 
   public setUser(info: { email: string; full_name?: string; google_sub?: string }): User {
-    const user = this.getUser();
-    if (info.email) user.email = info.email;
-    if (info.full_name) user.full_name = info.full_name;
-    if (info.google_sub) user.google_sub = info.google_sub;
+    let user = this.data.users.find((u) => u.email.toLowerCase() === info.email.toLowerCase());
+    if (!user) {
+      user = {
+        id: 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        email: info.email,
+        full_name: info.full_name || info.email.split('@')[0],
+        google_sub: info.google_sub,
+        timezone: 'Asia/Jakarta',
+        created_at: new Date().toISOString(),
+        archived_at: null,
+      };
+      this.data.users.push(user);
+    } else {
+      if (info.full_name) user.full_name = info.full_name;
+      if (info.google_sub) user.google_sub = info.google_sub;
+    }
     this.saveToFile();
     return user;
   }
 
-  public archiveItem(type: 'tasks' | 'expenses' | 'groceries' | 'notes' | 'reminders', id: string): boolean {
+  public archiveItem(type: 'tasks' | 'expenses' | 'groceries' | 'notes' | 'reminders', id: string, userId?: string): boolean {
     const table = this.data[type] as any[];
     if (!table) return false;
-    const item = table.find((x) => x.id === id);
+    const item = table.find((x) => x.id === id && (!userId || x.user_id === userId));
     if (!item) return false;
     item.archived_at = new Date().toISOString();
     this.saveToFile();
@@ -294,19 +326,19 @@ class OmniaStorage {
     return created;
   }
 
-  public getRecentMessages(limit = 50): ChatMessage[] {
+  public getRecentMessages(limit = 50, userId?: string): ChatMessage[] {
     return this.data.chat_messages
-      .filter((m) => !m.archived_at)
+      .filter((m) => !m.archived_at && (!userId || m.user_id === userId))
       .slice(-limit);
   }
 
-  public getAllMessages(): ChatMessage[] {
-    return this.data.chat_messages.filter((m) => !m.archived_at);
+  public getAllMessages(userId?: string): ChatMessage[] {
+    return this.data.chat_messages.filter((m) => !m.archived_at && (!userId || m.user_id === userId));
   }
 
   // --- Tier 2: Rolling Summary ---
-  public getLatestSummary(scope: 'conversation' | 'daily' | 'weekly' = 'conversation'): Summary | null {
-    const list = this.data.summaries.filter((s) => s.scope === scope && !s.archived_at);
+  public getLatestSummary(scope: 'conversation' | 'daily' | 'weekly' = 'conversation', userId?: string): Summary | null {
+    const list = this.data.summaries.filter((s) => s.scope === scope && !s.archived_at && (!userId || s.user_id === userId));
     return list.length ? list[list.length - 1] : null;
   }
 
@@ -338,9 +370,10 @@ class OmniaStorage {
     return created;
   }
 
-  public getTasks(includeCompleted = true): Task[] {
+  public getTasks(includeCompleted = true, userId?: string): Task[] {
     return this.data.tasks.filter((t) => {
       if (t.archived_at) return false;
+      if (userId && t.user_id !== userId) return false;
       if (!includeCompleted && t.status === 'COMPLETED') return false;
       return true;
     });
@@ -357,10 +390,11 @@ class OmniaStorage {
     return t;
   }
 
-  public fuzzyMatchAndCompleteTask(query: string): Task | null {
+  public fuzzyMatchAndCompleteTask(query: string, userId?: string): Task | null {
     const lower = query.toLowerCase();
     const candidate = this.data.tasks.find((t) => {
       if (t.status === 'COMPLETED' || t.archived_at) return false;
+      if (userId && t.user_id !== userId) return false;
       const tLower = t.title.toLowerCase();
       return tLower.includes(lower) || lower.includes(tLower) || this.tokenOverlap(tLower, lower) > 0.4;
     });
@@ -396,8 +430,12 @@ class OmniaStorage {
     return created;
   }
 
-  public getExpenses(): Expense[] {
-    return this.data.expenses.filter((e) => !e.archived_at);
+  public getExpenses(userId?: string): Expense[] {
+    return this.data.expenses.filter((e) => {
+      if (e.archived_at) return false;
+      if (userId && e.user_id !== userId) return false;
+      return true;
+    });
   }
 
   public updateExpense(id: string, updates: Partial<Expense>): Expense | null {
@@ -421,8 +459,12 @@ class OmniaStorage {
     return created;
   }
 
-  public getGroceries(): Grocery[] {
-    return this.data.groceries.filter((g) => !g.archived_at);
+  public getGroceries(userId?: string): Grocery[] {
+    return this.data.groceries.filter((g) => {
+      if (g.archived_at) return false;
+      if (userId && g.user_id !== userId) return false;
+      return true;
+    });
   }
 
   public updateGrocery(id: string, updates: Partial<Grocery>): Grocery | null {
@@ -446,9 +488,10 @@ class OmniaStorage {
     return created;
   }
 
-  public getNotes(kind?: 'note' | 'plan' | 'idea'): Note[] {
+  public getNotes(kind?: 'note' | 'plan' | 'idea', userId?: string): Note[] {
     return this.data.notes.filter((n) => {
       if (n.archived_at) return false;
+      if (userId && n.user_id !== userId) return false;
       if (kind && n.kind !== kind) return false;
       return true;
     });
@@ -475,8 +518,12 @@ class OmniaStorage {
     return created;
   }
 
-  public getBookmarks(): Bookmark[] {
-    return this.data.bookmarks.filter((b) => !b.archived_at);
+  public getBookmarks(userId?: string): Bookmark[] {
+    return this.data.bookmarks.filter((b) => {
+      if (b.archived_at) return false;
+      if (userId && b.user_id !== userId) return false;
+      return true;
+    });
   }
 
   // --- Reminders ---
@@ -492,8 +539,12 @@ class OmniaStorage {
     return created;
   }
 
-  public getReminders(): Reminder[] {
-    return this.data.reminders.filter((r) => !r.archived_at);
+  public getReminders(userId?: string): Reminder[] {
+    return this.data.reminders.filter((r) => {
+      if (r.archived_at) return false;
+      if (userId && r.user_id !== userId) return false;
+      return true;
+    });
   }
 
   public updateReminder(id: string, updates: Partial<Reminder>): Reminder | null {
@@ -574,8 +625,22 @@ class OmniaStorage {
   }
 
   // --- Backup & Export ---
-  public exportFullBackup(): OmniaStoreData {
-    return JSON.parse(JSON.stringify(this.data));
+  public exportFullBackup(userId?: string): OmniaStoreData {
+    if (!userId) {
+      return JSON.parse(JSON.stringify(this.data));
+    }
+    const cloned: OmniaStoreData = JSON.parse(JSON.stringify(this.data));
+    cloned.users = cloned.users.filter((u) => u.id === userId);
+    cloned.tasks = cloned.tasks.filter((t) => t.user_id === userId);
+    cloned.expenses = cloned.expenses.filter((e) => e.user_id === userId);
+    cloned.groceries = cloned.groceries.filter((g) => g.user_id === userId);
+    cloned.notes = cloned.notes.filter((n) => n.user_id === userId);
+    cloned.bookmarks = cloned.bookmarks.filter((b) => b.user_id === userId);
+    cloned.reminders = cloned.reminders.filter((r) => r.user_id === userId);
+    cloned.chat_messages = cloned.chat_messages.filter((m) => m.user_id === userId);
+    cloned.summaries = cloned.summaries.filter((s) => s.user_id === userId);
+    cloned.user_settings = cloned.user_settings.filter((s) => s.user_id === userId);
+    return cloned;
   }
 
   public importBackup(backup: Partial<OmniaStoreData>): { imported: Record<string, number> } {

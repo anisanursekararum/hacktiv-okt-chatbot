@@ -12,6 +12,7 @@ export async function GET() {
       timezone: user.timezone,
     },
     googleClientIdConfigured: Boolean(process.env.GOOGLE_CLIENT_ID && !process.env.GOOGLE_CLIENT_ID.includes('your-google')),
+    googleClientId: process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
   });
 }
 

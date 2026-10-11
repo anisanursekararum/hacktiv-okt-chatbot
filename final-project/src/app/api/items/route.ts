@@ -4,34 +4,38 @@ import { storage } from '@/lib/db/storage';
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type');
+  const email = searchParams.get('email');
+
+  const currentUser = email ? storage.getUser(email) : storage.getUser();
+  const userId = currentUser.id;
 
   if (type === 'tasks') {
-    return NextResponse.json({ tasks: storage.getTasks() });
+    return NextResponse.json({ tasks: storage.getTasks(true, userId) });
   }
   if (type === 'expenses') {
-    return NextResponse.json({ expenses: storage.getExpenses() });
+    return NextResponse.json({ expenses: storage.getExpenses(userId) });
   }
   if (type === 'groceries') {
-    return NextResponse.json({ groceries: storage.getGroceries() });
+    return NextResponse.json({ groceries: storage.getGroceries(userId) });
   }
   if (type === 'notes') {
-    return NextResponse.json({ notes: storage.getNotes() });
+    return NextResponse.json({ notes: storage.getNotes(undefined, userId) });
   }
   if (type === 'bookmarks') {
-    return NextResponse.json({ bookmarks: storage.getBookmarks() });
+    return NextResponse.json({ bookmarks: storage.getBookmarks(userId) });
   }
   if (type === 'reminders') {
-    return NextResponse.json({ reminders: storage.getReminders() });
+    return NextResponse.json({ reminders: storage.getReminders(userId) });
   }
 
   // Return full dashboard state
   return NextResponse.json({
-    tasks: storage.getTasks(),
-    expenses: storage.getExpenses(),
-    groceries: storage.getGroceries(),
-    notes: storage.getNotes(),
-    reminders: storage.getReminders(),
-    user: storage.getUser(),
+    tasks: storage.getTasks(true, userId),
+    expenses: storage.getExpenses(userId),
+    groceries: storage.getGroceries(userId),
+    notes: storage.getNotes(undefined, userId),
+    reminders: storage.getReminders(userId),
+    user: currentUser,
   });
 }
 
