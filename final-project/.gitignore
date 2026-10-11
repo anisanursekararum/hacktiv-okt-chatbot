@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment & Critical Secrets
+.env
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!*.env.example
+
+# Next.js build output & caches
+.next/
+out/
+build/
+dist/
+
+# Local database & private user state
+data/omnia_storage.json
+
+# Logs & temp files
+*.log
+*.tsbuildinfo
+.DS_Store
+*.pem
