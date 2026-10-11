@@ -27,7 +27,8 @@ export function TodayView({ onNavigateTab }: { onNavigateTab: (tab: any) => void
 
   const loadData = () => {
     setLoading(true);
-    fetch('/api/items')
+    const email = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('my_pa_logged_in_user') || '{}')?.email : '';
+    fetch(`/api/items${email ? `?email=${encodeURIComponent(email)}` : ''}`)
       .then((res) => res.json())
       .then((data) => {
         setTasks(data.tasks || []);

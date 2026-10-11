@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { CheckSquare, CheckCircle2, Circle, Plus, Calendar, Tag, Trash2, Filter } from 'lucide-react';
 import { Task } from '@/lib/db/storage';
 
+import { ConfirmationModal } from './ConfirmationModal';
+
 export function TasksView() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'COMPLETED'>('ALL');
@@ -12,10 +14,12 @@ export function TasksView() {
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('general');
   const [loading, setLoading] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const fetchTasks = async () => {
     try {
-      const res = await fetch('/api/items?type=tasks');
+      const email = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('my_pa_logged_in_user') || '{}')?.email : '';
+      const res = await fetch(`/api/items?type=tasks${email ? `&email=${encodeURIComponent(email)}` : ''}`);
       const data = await res.json();
       setTasks(data.tasks || []);
     } catch (err) {
@@ -41,14 +45,20 @@ export function TasksView() {
     fetchTasks();
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const requestDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Are you sure you want to remove this task?')) return;
+    setDeleteTargetId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
     try {
-      await fetch(`/api/items?type=tasks&id=${id}`, { method: 'DELETE' });
+      await fetch(`/api/items?type=tasks&id=${deleteTargetId}`, { method: 'DELETE' });
       fetchTasks();
     } catch (err) {
       console.error(err);
+    } finally {
+      setDeleteTargetId(null);
     }
   };
 
@@ -233,7 +243,7 @@ export function TasksView() {
 
                 {/* 1-Click Remove Button (Point 11) */}
                 <button
-                  onClick={(e) => handleDelete(task.id, e)}
+                  onClick={(e) => requestDelete(task.id, e)}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition"
                   title="Remove this task"
                 >
@@ -250,6 +260,19 @@ export function TasksView() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={Boolean(deleteTargetId)}
+        title="Delete To-Do Item"
+        message="Are you sure you want to delete this task? The task will be archived and hidden from your active list."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        iconType="trash"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </div>
   );
 }
