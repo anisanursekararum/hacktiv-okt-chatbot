@@ -11,8 +11,8 @@
 ```text
 hacktiv-10-okt/
 ├── 📁 final-project/          # [MAIN] My PA – Full-Stack Personal Assistant Web App & PWA
-├── 📁 chatbot/                # [Module 1] Baseline CLI / Interactive Terminal Chatbot
-├── 📁 gemini-chatbot-api/     # [Module 2] RESTful Chatbot API Service using Express & Gemini
+├── 📁 chatbot/                # [Module 2] Baseline CLI / Interactive Terminal Chatbot
+├── 📁 gemini-chatbot-api/     # [Module 3] RESTful Chatbot API Service using Express & Gemini
 ├── 📄 readme.md               # Root repository documentation overview
 └── 📄 .gitignore              # Global git ignore configuration
 ```
